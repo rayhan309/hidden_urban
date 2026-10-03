@@ -21,6 +21,10 @@ export const metadata: Metadata = {
     template: "%s | Hidden Urban",
   },
   description: "Men's fashion ecommerce — thoughtful pieces for everyday style.",
+  icons: {
+    icon: "/brand/hidden-urban-logo.jpg",
+    apple: "/brand/hidden-urban-logo.jpg",
+  },
 };
 
 export default function RootLayout({

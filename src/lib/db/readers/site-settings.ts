@@ -155,8 +155,12 @@ export function mapSiteSettingsDoc(doc: Record<string, unknown>): SiteSettings {
     primaryColorDark: String(doc.primaryColorDark ?? colors.primaryColorDark),
     primaryColorSoft: String(doc.primaryColorSoft ?? colors.primaryColorSoft),
     primaryColorBorder: String(doc.primaryColorBorder ?? colors.primaryColorBorder),
-    logoUrl: imageUrlFromField(doc.logoUrl ?? doc.logo ?? doc.shopLogo),
-    faviconUrl: imageUrlFromField(doc.faviconUrl ?? doc.favicon),
+    logoUrl:
+      imageUrlFromField(doc.logoUrl ?? doc.logo ?? doc.shopLogo).trim() ||
+      DEFAULT_SITE_SETTINGS.logoUrl,
+    faviconUrl:
+      imageUrlFromField(doc.faviconUrl ?? doc.favicon).trim() ||
+      DEFAULT_SITE_SETTINGS.faviconUrl,
     contactEmail: String(doc.contactEmail ?? DEFAULT_SITE_SETTINGS.contactEmail),
     contactPhone: String(doc.contactPhone ?? DEFAULT_SITE_SETTINGS.contactPhone),
     contactAddress: String(doc.contactAddress ?? doc.address ?? DEFAULT_SITE_SETTINGS.contactAddress),

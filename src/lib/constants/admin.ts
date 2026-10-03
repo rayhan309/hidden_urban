@@ -66,6 +66,7 @@ export const ADMIN_NAV: AdminNavEntry[] = [
     children: [
       { label: "All Customers", href: "/dashboard/admin/reports" },
       { label: "Repeat Customers", href: "/dashboard/admin/reports/repeat-customers" },
+      { label: "Locations", href: "/dashboard/admin/reports/locations" },
     ],
   },
 ];

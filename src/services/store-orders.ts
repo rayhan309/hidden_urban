@@ -5,6 +5,14 @@ export type PlaceStoreOrderResult = StoreOrder & {
   purchaseEventId?: string;
 };
 
+export async function fetchOrderRegion(): Promise<{ allowed: boolean; message?: string }> {
+  const { data } = await api.get<{ allowed: boolean; message?: string }>("/api/store/order-region");
+  return {
+    allowed: Boolean(data?.allowed),
+    message: typeof data?.message === "string" ? data.message : undefined,
+  };
+}
+
 export async function placeStoreOrder(
   input: CreateStoreOrderInput,
 ): Promise<PlaceStoreOrderResult> {

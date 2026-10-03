@@ -8,10 +8,15 @@ export const queryKeys = {
     all: ["home"] as const,
     page: () => [...queryKeys.home.all, "page"] as const,
   },
+  store: {
+    all: ["store"] as const,
+    orderRegion: () => [...queryKeys.store.all, "order-region"] as const,
+  },
   admin: {
     all: ["admin"] as const,
     overview: () => [...queryKeys.admin.all, "overview"] as const,
     orders: () => [...queryKeys.admin.all, "orders"] as const,
+    blockedIps: () => [...queryKeys.admin.all, "blocked-ips"] as const,
     order: (id: string) => [...queryKeys.admin.orders(), id] as const,
     orderProductOptions: () =>
       [...queryKeys.admin.orders(), "product-options"] as const,

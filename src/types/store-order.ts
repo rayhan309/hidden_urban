@@ -38,6 +38,8 @@ export type StoreOrder = {
   steadfastConsignmentId?: string | number | null;
   steadfastTrackingCode?: string;
   steadfastSentAt?: string;
+  /** Visitor IP captured when the order was placed. Admin only. */
+  customerIp?: string;
 };
 
 export type CreateStoreOrderInput = {

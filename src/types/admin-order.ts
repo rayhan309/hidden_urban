@@ -22,6 +22,10 @@ export type AdminOrder = {
   status: AdminOrderStatus;
   createdAt: string;
   steadfastConsignmentId?: string | number | null;
+  customerIp?: string;
+  customerCity?: string;
+  customerRegion?: string;
+  customerAddress?: string;
 };
 
 export const ADMIN_ORDER_STATUS_LABELS: Record<AdminOrderStatus, string> = {

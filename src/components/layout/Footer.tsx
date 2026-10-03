@@ -97,8 +97,15 @@ export function Footer() {
           <div className="lg:col-span-4">
             <Link
               href="/"
-              className="text-xl font-bold tracking-[-0.04em] text-[#20312d]"
+              className="inline-flex items-center gap-2 text-xl font-bold tracking-[-0.04em] text-[#20312d]"
             >
+              {settings.logoUrl ? (
+                <img
+                  src={settings.logoUrl}
+                  alt=""
+                  className="h-10 w-10 object-contain"
+                />
+              ) : null}
               {settings.shopName}
             </Link>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-[#61716a]">

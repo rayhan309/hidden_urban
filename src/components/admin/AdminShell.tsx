@@ -22,6 +22,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { ToastProvider } from "@/context/toast/ToastProvider";
 import {
   ADMIN_ACCENT,
@@ -97,6 +98,7 @@ function SidebarContent({
   }
 
   const homeHref = ROLE_HOME[userRole];
+  const settings = useSiteSettings();
 
   return (
     <Box
@@ -111,20 +113,18 @@ function SidebarContent({
       <Box sx={{ px: 2, py: 2.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
           <Box
+            component="img"
+            src={settings.logoUrl}
+            alt=""
             sx={{
               width: 40,
               height: 40,
               borderRadius: 1,
-              bgcolor: ADMIN_ACCENT,
-              display: "grid",
-              placeItems: "center",
-              fontWeight: 800,
-              fontSize: "0.75rem",
-              letterSpacing: "0.04em",
+              objectFit: "cover",
+              display: "block",
+              flexShrink: 0,
             }}
-          >
-            EF
-          </Box>
+          />
           <Box sx={{ minWidth: 0 }}>
             <Typography
               component={Link}

@@ -1,5 +1,7 @@
 "use client";
 
+import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import {
   Box,
@@ -11,14 +13,19 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
+  TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { AdminOrderHistoryDialog } from "@/components/admin/orders/AdminOrderHistoryDialog";
+import { useToast } from "@/context/toast/ToastProvider";
 import { ADMIN_ACCENT } from "@/lib/constants/admin";
 import { formatCurrency } from "@/lib/formatters/currency";
 import { queryKeys } from "@/lib/queries/query-keys";
+import { blockCustomerIp, fetchBlockedIps, unblockCustomerIp } from "@/services/admin-blocked-ips";
 import { fetchAdminOrderDetail } from "@/services/admin-order-mutations";
 import {
   ADMIN_ORDER_STATUS_LABELS,
@@ -64,11 +71,50 @@ export function AdminOrderDetailDialog({
   onEdit,
 }: AdminOrderDetailDialogProps) {
   const open = Boolean(orderId);
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [blockNote, setBlockNote] = useState("");
   const { data: order, isPending, isError, error } = useQuery({
     queryKey: queryKeys.admin.order(orderId ?? ""),
     queryFn: () => fetchAdminOrderDetail(orderId!),
     enabled: open && Boolean(orderId),
+  });
+  const { data: blockedIps } = useQuery({
+    queryKey: queryKeys.admin.blockedIps(),
+    queryFn: fetchBlockedIps,
+    enabled: open,
+  });
+  const customerIp = order?.customerIp?.trim() ?? "";
+  const ipBlocked = Boolean(customerIp && blockedIps?.some((row) => row.ip === customerIp));
+
+  const blockMutation = useMutation({
+    mutationFn: () =>
+      blockCustomerIp({
+        ip: customerIp,
+        note: blockNote,
+        orderNumber: order?.orderNumber,
+        customerName: order?.customer.name,
+      }),
+    onSuccess: async () => {
+      setBlockNote("");
+      showToast("IP blocked");
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.blockedIps() });
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : "Failed to block IP", "error");
+    },
+  });
+
+  const unblockMutation = useMutation({
+    mutationFn: () => unblockCustomerIp(customerIp),
+    onSuccess: async () => {
+      showToast("IP unblocked");
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.blockedIps() });
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : "Failed to unblock IP", "error");
+    },
   });
 
   const chip = order ? statusChipSx[order.status] : null;
@@ -138,6 +184,63 @@ export function AdminOrderDetailDialog({
                 <Typography sx={{ mt: 0.5, fontSize: "0.8rem", color: "text.secondary" }}>
                   Delivery area: {order.customer.deliveryArea}
                 </Typography>
+              ) : null}
+              <Box sx={{ mt: 0.75, display: "flex", alignItems: "center", gap: 0.25 }}>
+                <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+                  IP: {customerIp || "Not recorded"}
+                  {ipBlocked ? " · Blocked" : ""}
+                </Typography>
+                {customerIp ? (
+                  <Tooltip title="Copy IP">
+                    <IconButton
+                      size="small"
+                      aria-label="Copy IP"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(customerIp).then(
+                          () => showToast("IP copied"),
+                          () => showToast("Could not copy IP", "error"),
+                        );
+                      }}
+                    >
+                      <ContentCopyRoundedIcon sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+              </Box>
+              {customerIp ? (
+                <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
+                  {ipBlocked ? (
+                    <Button
+                      size="small"
+                      onClick={() => unblockMutation.mutate()}
+                      disabled={unblockMutation.isPending}
+                      sx={{ textTransform: "none" }}
+                    >
+                      {unblockMutation.isPending ? "Unblocking…" : "Unblock IP"}
+                    </Button>
+                  ) : (
+                    <>
+                      <TextField
+                        size="small"
+                        placeholder="Note (optional)"
+                        value={blockNote}
+                        onChange={(event) => setBlockNote(event.target.value)}
+                        sx={{ minWidth: 180 }}
+                      />
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                        startIcon={<BlockOutlinedIcon />}
+                        onClick={() => blockMutation.mutate()}
+                        disabled={blockMutation.isPending}
+                        sx={{ textTransform: "none" }}
+                      >
+                        {blockMutation.isPending ? "Blocking…" : "Block IP"}
+                      </Button>
+                    </>
+                  )}
+                </Box>
               ) : null}
               {order.customer.note ? (
                 <Typography

@@ -115,6 +115,7 @@ export function mapStoreOrderDoc(doc: Record<string, unknown>): StoreOrder {
     })(),
     steadfastTrackingCode: String(doc.steadfastTrackingCode ?? ""),
     steadfastSentAt: doc.steadfastSentAt ? String(doc.steadfastSentAt) : undefined,
+    customerIp: String(doc.customerIp ?? ""),
   };
 }
 
@@ -131,11 +132,16 @@ export function toAdminOrder(order: StoreOrder): AdminOrder {
     status: order.status,
     createdAt: order.createdAt,
     steadfastConsignmentId: order.steadfastConsignmentId ?? null,
+    customerIp: order.customerIp?.trim() ?? "",
+    customerCity: order.customer.city?.trim() ?? "",
+    customerRegion: order.customer.region?.trim() ?? "",
+    customerAddress: order.customer.address?.trim() ?? "",
   };
 }
 
 export async function createStoreOrderInDb(
   input: CreateStoreOrderInput,
+  customerIp = "",
 ): Promise<StoreOrder> {
   if (!input.items.length) {
     throw new Error("Cart is empty");
@@ -195,6 +201,7 @@ export async function createStoreOrderInDb(
     total,
     currency: "BDT" as const,
     paymentMethod: "cod" as const,
+    customerIp: customerIp.trim(),
     createdAt: now,
     updatedAt: now,
   };
@@ -307,6 +314,7 @@ function mapLegacyAdminOrderToStoreOrder(doc: Record<string, unknown>): StoreOrd
     paymentMethod: "cod",
     createdAt,
     updatedAt: String(doc.updatedAt ?? createdAt),
+    customerIp: String(doc.customerIp ?? ""),
   };
 }
 

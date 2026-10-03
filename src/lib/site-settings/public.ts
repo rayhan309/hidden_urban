@@ -32,6 +32,8 @@ export function normalizePublicSiteSettings(
   return {
     ...base,
     ...settings,
+    logoUrl: settings.logoUrl?.trim() || base.logoUrl,
+    faviconUrl: settings.faviconUrl?.trim() || base.faviconUrl,
     socialLinks: Array.isArray(settings.socialLinks)
       ? settings.socialLinks
       : base.socialLinks,

@@ -20,6 +20,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { BlockedIpBadge, SameIpBadge } from "@/components/admin/orders/SameIpBadge";
 import { SteadfastConsignmentBadge } from "@/components/admin/orders/SteadfastConsignmentBadge";
 import { ADMIN_ACCENT } from "@/lib/constants/admin";
 import {
@@ -62,10 +63,13 @@ const footerActionSx = {
 
 type AdminOrderMobileCardProps = {
   order: AdminOrder;
+  sameIpCount?: number;
+  ipBlocked?: boolean;
   selected: boolean;
   sending: boolean;
   onToggleSelect: () => void;
   onCopyPhone: (phone: string) => void;
+  onCopyIp?: (ip: string) => void;
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -102,6 +106,7 @@ function DetailRow({
         {label}
       </Typography>
       <Typography
+        component="div"
         sx={{
           fontSize: "0.85rem",
           fontWeight: 600,
@@ -117,10 +122,13 @@ function DetailRow({
 
 export function AdminOrderMobileCard({
   order,
+  sameIpCount = 0,
+  ipBlocked = false,
   selected,
   sending,
   onToggleSelect,
   onCopyPhone,
+  onCopyIp,
   onView,
   onEdit,
   onDelete,
@@ -132,6 +140,7 @@ export function AdminOrderMobileCard({
   phoneToWhatsApp,
 }: AdminOrderMobileCardProps) {
   const chip = statusChipSx[order.status];
+  const sameIp = sameIpCount > 1 && order.customerIp?.trim();
   const sentToSteadfast =
     order.steadfastConsignmentId != null && order.steadfastConsignmentId !== "";
   const courierDisabled = sentToSteadfast || sending;
@@ -140,9 +149,15 @@ export function AdminOrderMobileCard({
     <Box
       sx={{
         border: "1px solid",
-        borderColor: selected ? ADMIN_ACCENT : "rgba(0,0,0,0.08)",
+        borderColor: selected
+          ? ADMIN_ACCENT
+          : ipBlocked
+            ? "#fca5a5"
+            : sameIp
+              ? "#fbbf24"
+              : "rgba(0,0,0,0.08)",
         borderRadius: 2,
-        bgcolor: "#fff",
+        bgcolor: ipBlocked ? "#fef2f2" : sameIp ? "#fffbeb" : "#fff",
         overflow: "hidden",
         boxShadow: selected ? "0 0 0 1px rgba(31,111,91,0.15)" : "none",
       }}
@@ -197,7 +212,39 @@ export function AdminOrderMobileCard({
       </Box>
 
       <Box sx={{ px: 1.5 }}>
-        <DetailRow label="Customer" value={order.customerName} />
+        {order.customerIp?.trim() ? (
+          <DetailRow
+            label="IP"
+            value={
+              <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.25 }}>
+                <span>{order.customerIp.trim()}</span>
+                {onCopyIp ? (
+                  <Tooltip title="Copy IP">
+                    <IconButton
+                      size="small"
+                      aria-label="Copy IP"
+                      onClick={() => onCopyIp(order.customerIp!.trim())}
+                    >
+                      <ContentCopyRoundedIcon sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+              </Box>
+            }
+          />
+        ) : null}
+        <DetailRow
+          label="Customer"
+          value={
+            <Box sx={{ display: "inline-flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 0.75 }}>
+              <span>{order.customerName}</span>
+              {ipBlocked ? <BlockedIpBadge /> : null}
+              {sameIp ? (
+                <SameIpBadge ip={order.customerIp!.trim()} count={sameIpCount} />
+              ) : null}
+            </Box>
+          }
+        />
 
         <Box
           sx={{

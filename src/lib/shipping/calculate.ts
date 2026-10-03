@@ -42,6 +42,37 @@ export function estimateDefaultShippingFee(
   return resolveShippingFee(settings, 0, subtotal);
 }
 
+function areaLooksInside(area: { id: string; name: string }): boolean {
+  const id = area.id.toLowerCase();
+  const name = area.name.toLowerCase();
+  return id.includes("inside") || name.includes("inside") || area.name.includes("ভেতরে");
+}
+
+function areaLooksOutside(area: { id: string; name: string }): boolean {
+  const id = area.id.toLowerCase();
+  const name = area.name.toLowerCase();
+  return (
+    id.includes("outside") ||
+    name.includes("outside") ||
+    area.name.includes("বাহিরে") ||
+    area.name.includes("বাইরে")
+  );
+}
+
+/** Inside-Dhaka rate when the district is Dhaka; otherwise the outside rate. */
+export function deliveryAreaIdForDistrict(
+  areas: { id: string; name: string }[],
+  district: string,
+): string {
+  if (!areas.length) return "";
+  const insideDhaka = district.trim().toLowerCase() === "dhaka";
+  const match = areas.find((area) =>
+    insideDhaka ? areaLooksInside(area) : areaLooksOutside(area),
+  );
+  if (match) return match.id;
+  return insideDhaka ? areas[0].id : areas[Math.min(1, areas.length - 1)].id;
+}
+
 export function findShippingAreaIndex(
   settings: Pick<SiteSettings, "shippingAreas">,
   areaIdOrName: string,

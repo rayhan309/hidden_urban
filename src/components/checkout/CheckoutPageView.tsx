@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { CartItemRow } from "@/components/cart/CartItemRow";
@@ -23,10 +24,12 @@ import { useCart } from "@/hooks/useCart";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { BD_REGION_OPTIONS, BD_REGIONS } from "@/lib/constants/locations";
 import {
+  deliveryAreaIdForDistrict,
   resolveShippingFee,
   shippingEstimateForArea,
 } from "@/lib/shipping/calculate";
-import { placeStoreOrder } from "@/services/store-orders";
+import { queryKeys } from "@/lib/queries/query-keys";
+import { fetchOrderRegion, placeStoreOrder } from "@/services/store-orders";
 
 type CheckoutFormValues = {
   name: string;
@@ -46,6 +49,12 @@ export function CheckoutPageView() {
   const settings = useSiteSettings();
   const { cart, clearCart, updateQuantity, removeItem } = useCart();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const { data: orderRegion, isPending: regionPending } = useQuery({
+    queryKey: queryKeys.store.orderRegion(),
+    queryFn: fetchOrderRegion,
+    staleTime: 60_000,
+  });
+  const regionBlocked = orderRegion?.allowed === false;
 
   const defaultAreaId = settings.shippingAreas[0]?.id ?? "";
 
@@ -71,16 +80,19 @@ export function CheckoutPageView() {
   });
 
   const region = watch("region");
+  const city = watch("city");
   const deliveryAreaId = watch("deliveryAreaId");
   const districts = BD_REGIONS[region] ?? [];
 
+  const autoAreaId = useMemo(
+    () => deliveryAreaIdForDistrict(settings.shippingAreas, city),
+    [settings.shippingAreas, city],
+  );
+
   useEffect(() => {
-    if (!settings.shippingAreas.length) return;
-    const exists = settings.shippingAreas.some((area) => area.id === deliveryAreaId);
-    if (!exists) {
-      setValue("deliveryAreaId", settings.shippingAreas[0].id);
-    }
-  }, [settings.shippingAreas, deliveryAreaId, setValue]);
+    if (!autoAreaId) return;
+    setValue("deliveryAreaId", autoAreaId);
+  }, [autoAreaId, setValue]);
 
   const areaIndex = Math.max(
     0,
@@ -113,6 +125,10 @@ export function CheckoutPageView() {
   }, [isEmpty, cart.items, cart.subtotal, cart.currency]);
 
   async function onSubmit(values: CheckoutFormValues) {
+    if (regionBlocked) {
+      setSubmitError(orderRegion?.message || "Orders cannot be placed from this connection.");
+      return;
+    }
     setSubmitError(null);
     const selectedArea =
       settings.shippingAreas.find((area) => area.id === values.deliveryAreaId) ??
@@ -207,9 +223,9 @@ export function CheckoutPageView() {
         </p>
       </div>
 
-      {submitError ? (
+      {submitError || regionBlocked ? (
         <Alert severity="error" sx={{ borderRadius: 1 }}>
-          {submitError}
+          {submitError || orderRegion?.message}
         </Alert>
       ) : null}
 
@@ -392,7 +408,7 @@ export function CheckoutPageView() {
                 cart={cart}
                 deliveryCharge={shippingFee}
                 confirmAsSubmit
-                confirmDisabled={isSubmitting}
+                confirmDisabled={isSubmitting || regionPending || regionBlocked}
                 confirmLabel={isSubmitting ? "Placing order…" : "Place order"}
               />
 

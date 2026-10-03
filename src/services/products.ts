@@ -38,6 +38,14 @@ export async function getCollectionProducts(limit = 8): Promise<Product[]> {
   return products.slice(0, limit);
 }
 
+export async function getRecentProducts(limit = 30): Promise<Product[]> {
+  const products = await getProducts();
+  return products
+    .slice()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, limit);
+}
+
 export async function getHomeCategoryProducts(
   perCategory = 5,
 ): Promise<CategoryProductGroup[]> {

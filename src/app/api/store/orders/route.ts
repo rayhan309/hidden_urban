@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 import { createStoreOrderInDb } from "@/lib/db/order-mutations";
+import { clientIpFromHeaders } from "@/lib/geo/client-ip";
+import { orderAccessFromRequest } from "@/lib/geo/order-access";
 import { dispatchCapiEvent } from "@/lib/pixel/dispatch";
 import type { CreateStoreOrderInput } from "@/types/store-order";
-
-function clientIp(request: Request): string | undefined {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]?.trim();
-  return request.headers.get("x-real-ip") ?? undefined;
-}
 
 function splitName(fullName: string): { firstName?: string; lastName?: string } {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
@@ -18,8 +14,14 @@ function splitName(fullName: string): { firstName?: string; lastName?: string } 
 
 export async function POST(request: Request) {
   try {
+    const access = await orderAccessFromRequest(request);
+    if (!access.allowed) {
+      return NextResponse.json({ error: access.message }, { status: 403 });
+    }
+
     const body = (await request.json()) as CreateStoreOrderInput;
-    const order = await createStoreOrderInDb(body);
+    const customerIp = clientIpFromHeaders(request.headers) ?? "";
+    const order = await createStoreOrderInDb(body, customerIp);
 
     const tracking = body.tracking;
     const eventId =
@@ -65,11 +67,12 @@ export async function POST(request: Request) {
         ttclid: tracking?.ttclid,
         clientUserAgent:
           tracking?.clientUserAgent || request.headers.get("user-agent") || undefined,
-        clientIpAddress: clientIp(request),
+        clientIpAddress: clientIpFromHeaders(request.headers),
       },
     });
 
-    return NextResponse.json({ ...order, purchaseEventId: eventId }, { status: 201 });
+    const { customerIp: _customerIp, ...publicOrder } = order;
+    return NextResponse.json({ ...publicOrder, purchaseEventId: eventId }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to place order";
     const status = message.includes("required") || message.includes("empty") ? 400 : 500;

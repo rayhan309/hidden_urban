@@ -37,12 +37,13 @@ import {
   Typography,
   Stack,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AdminOrderDetailDialog } from "@/components/admin/orders/AdminOrderDetailDialog";
 import { AdminOrderEditDialog } from "@/components/admin/orders/AdminOrderEditDialog";
 import { AdminOrderMobileCard } from "@/components/admin/orders/AdminOrderMobileCard";
+import { BlockedIpBadge, SameIpBadge } from "@/components/admin/orders/SameIpBadge";
 import { SteadfastConsignmentBadge } from "@/components/admin/orders/SteadfastConsignmentBadge";
 import { useToast } from "@/context/toast/ToastProvider";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -50,6 +51,7 @@ import { ADMIN_ACCENT } from "@/lib/constants/admin";
 import { printOrderInvoice } from "@/lib/orders/print-invoice";
 import { printOrderSticker } from "@/lib/orders/print-sticker";
 import { queryKeys } from "@/lib/queries/query-keys";
+import { fetchBlockedIps } from "@/services/admin-blocked-ips";
 import {
   deleteAdminOrder,
   fetchAdminOrderDetail,
@@ -62,7 +64,7 @@ import {
   type AdminOrderStatus,
 } from "@/types/admin-order";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 const DATE_RANGES = [
   { value: "lifetime", label: "Lifetime" },
@@ -239,10 +241,32 @@ export function AdminOrdersView({ orders }: AdminOrdersViewProps) {
       return (
         order.orderNumber.toLowerCase().includes(q) ||
         order.customerName.toLowerCase().includes(q) ||
-        order.customerPhone.includes(q.replace(/\s/g, ""))
+        order.customerPhone.includes(q.replace(/\s/g, "")) ||
+        (order.customerIp ?? "").toLowerCase().includes(q)
       );
     });
   }, [orders, search, statusFilter, dateRange]);
+
+  const { data: blockedIps } = useQuery({
+    queryKey: queryKeys.admin.blockedIps(),
+    queryFn: fetchBlockedIps,
+  });
+
+  const blockedIpSet = useMemo(() => {
+    return new Set(
+      (blockedIps ?? []).map((row) => row.ip.trim().toLowerCase()).filter(Boolean),
+    );
+  }, [blockedIps]);
+
+  const sameIpCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const order of orders) {
+      const ip = order.customerIp?.trim().toLowerCase();
+      if (!ip) continue;
+      counts.set(ip, (counts.get(ip) ?? 0) + 1);
+    }
+    return counts;
+  }, [orders]);
 
   const repeatPhones = useMemo(() => {
     const counts = new Map<string, number>();
@@ -291,6 +315,15 @@ export function AdminOrdersView({ orders }: AdminOrdersViewProps) {
     try {
       await navigator.clipboard.writeText(phone);
       showToast("Phone copied");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function copyIp(ip: string) {
+    try {
+      await navigator.clipboard.writeText(ip);
+      showToast("IP copied");
     } catch {
       /* ignore */
     }
@@ -385,6 +418,21 @@ export function AdminOrdersView({ orders }: AdminOrdersViewProps) {
           }}
         >
           <Button
+            component={Link}
+            href="/dashboard/admin/orders/blocked-ips"
+            variant="outlined"
+            size="small"
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              borderColor: "rgba(0,0,0,0.12)",
+              color: "text.primary",
+              height: 40,
+            }}
+          >
+            Blocked IPs
+          </Button>
+          <Button
             variant="outlined"
             size="small"
             startIcon={
@@ -446,7 +494,7 @@ export function AdminOrdersView({ orders }: AdminOrdersViewProps) {
           <TextField
             fullWidth
             size="small"
-            placeholder="Search by order ID, name, or phone..."
+            placeholder="Search by order ID, name, phone, or IP..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -507,10 +555,13 @@ export function AdminOrdersView({ orders }: AdminOrdersViewProps) {
               <AdminOrderMobileCard
                 key={order.id}
                 order={order}
+                sameIpCount={sameIpCounts.get(order.customerIp?.trim().toLowerCase() ?? "") ?? 0}
+                ipBlocked={blockedIpSet.has(order.customerIp?.trim().toLowerCase() ?? "")}
                 selected={selected.has(order.id)}
                 sending={sendingOrderId === order.id}
                 onToggleSelect={() => toggleRow(order.id)}
                 onCopyPhone={copyPhone}
+                onCopyIp={copyIp}
                 onView={() => setViewOrderId(order.id)}
                 onEdit={() => setEditOrderId(order.id)}
                 onDelete={() => setDeleteTarget(order)}
@@ -572,8 +623,23 @@ export function AdminOrdersView({ orders }: AdminOrdersViewProps) {
                   const chip = statusChipSx[order.status];
                   const invoiceBusy = printBusyId === `invoice:${order.id}`;
                   const stickerBusy = printBusyId === `sticker:${order.id}`;
+                  const sameIpCount =
+                    sameIpCounts.get(order.customerIp?.trim().toLowerCase() ?? "") ?? 0;
+                  const sameIp = sameIpCount > 1 && order.customerIp?.trim();
+                  const ipBlocked = blockedIpSet.has(order.customerIp?.trim().toLowerCase() ?? "");
                   return (
-                    <TableRow key={order.id} hover selected={selected.has(order.id)}>
+                    <TableRow
+                      key={order.id}
+                      hover
+                      selected={selected.has(order.id)}
+                      sx={
+                        ipBlocked
+                          ? { bgcolor: "#fef2f2" }
+                          : sameIp
+                            ? { bgcolor: "#fffbeb" }
+                            : undefined
+                      }
+                    >
                       <TableCell padding="checkbox">
                         <Checkbox
                           size="small"
@@ -596,6 +662,10 @@ export function AdminOrdersView({ orders }: AdminOrdersViewProps) {
                           <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>
                             {order.customerName}
                           </Typography>
+                          {ipBlocked ? <BlockedIpBadge /> : null}
+                          {sameIp ? (
+                            <SameIpBadge ip={order.customerIp!.trim()} count={sameIpCount} />
+                          ) : null}
                           {repeatPhones.has(normalizePhone(order.customerPhone)) ? (
                             <Box
                               component={Link}
@@ -624,6 +694,24 @@ export function AdminOrdersView({ orders }: AdminOrdersViewProps) {
                             </Box>
                           ) : null}
                         </Box>
+                        {order.customerIp?.trim() ? (
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, mt: 0.25 }}>
+                            <Typography
+                              sx={{ fontSize: "0.75rem", color: "text.secondary", fontFamily: "ui-monospace, monospace" }}
+                            >
+                              {order.customerIp.trim()}
+                            </Typography>
+                            <Tooltip title="Copy IP">
+                              <IconButton
+                                size="small"
+                                aria-label="Copy IP"
+                                onClick={() => void copyIp(order.customerIp!.trim())}
+                              >
+                                <ContentCopyRoundedIcon sx={{ fontSize: 15 }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        ) : null}
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, mt: 0.35 }}>
                           <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
                             {order.customerPhone}
@@ -747,38 +835,60 @@ export function AdminOrdersView({ orders }: AdminOrdersViewProps) {
                               onCopied={() => showToast("Consignment ID copied")}
                             />
                           ) : (
-                            <Tooltip title="Send to Steadfast courier">
-                              <span>
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  disabled={
-                                    sendingOrderId === order.id ||
-                                    steadfastMutation.isPending
-                                  }
-                                  onClick={() => steadfastMutation.mutate(order.id)}
-                                  startIcon={
-                                    <LocalShippingOutlinedIcon sx={{ fontSize: 16 }} />
-                                  }
-                                  sx={{
-                                    ml: 0.5,
-                                    mr: 0.5,
-                                    py: 0.35,
-                                    fontSize: "0.7rem",
-                                    fontWeight: 600,
-                                    textTransform: "none",
-                                    borderColor: "rgba(0,0,0,0.12)",
-                                    color: "text.primary",
-                                    whiteSpace: "nowrap",
-                                    display: { xs: "none", lg: "inline-flex" },
-                                  }}
-                                >
-                                  {sendingOrderId === order.id
-                                    ? "Sending..."
-                                    : "Send to courier"}
-                                </Button>
-                              </span>
-                            </Tooltip>
+                            <>
+                              <Tooltip title="Send to Steadfast courier">
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    aria-label="Send to courier"
+                                    disabled={
+                                      sendingOrderId === order.id ||
+                                      steadfastMutation.isPending
+                                    }
+                                    onClick={() => steadfastMutation.mutate(order.id)}
+                                    sx={{ display: { lg: "none" }, color: "#7c3aed" }}
+                                  >
+                                    {sendingOrderId === order.id ? (
+                                      <CircularProgress size={16} />
+                                    ) : (
+                                      <LocalShippingOutlinedIcon sx={{ fontSize: 18 }} />
+                                    )}
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                              <Tooltip title="Send to Steadfast courier">
+                                <span>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    disabled={
+                                      sendingOrderId === order.id ||
+                                      steadfastMutation.isPending
+                                    }
+                                    onClick={() => steadfastMutation.mutate(order.id)}
+                                    startIcon={
+                                      <LocalShippingOutlinedIcon sx={{ fontSize: 16 }} />
+                                    }
+                                    sx={{
+                                      ml: 0.5,
+                                      mr: 0.5,
+                                      py: 0.35,
+                                      fontSize: "0.7rem",
+                                      fontWeight: 600,
+                                      textTransform: "none",
+                                      borderColor: "rgba(0,0,0,0.12)",
+                                      color: "text.primary",
+                                      whiteSpace: "nowrap",
+                                      display: { xs: "none", lg: "inline-flex" },
+                                    }}
+                                  >
+                                    {sendingOrderId === order.id
+                                      ? "Sending..."
+                                      : "Send to courier"}
+                                  </Button>
+                                </span>
+                              </Tooltip>
+                            </>
                           )}
                           <Tooltip title="View">
                             <IconButton

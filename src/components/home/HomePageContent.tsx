@@ -44,7 +44,7 @@ export function HomePageContent() {
     <div className="flex flex-1 flex-col gap-10 md:gap-12">
       <HeroSection slides={hero.slides} sideBanners={hero.sideBanners} />
       <TopCategories categories={data.categories} />
-      <CollectionsSection groups={data.categoryGroups} />
+      <CollectionsSection products={data.recentProducts ?? []} />
       <ClientReviewsSection reviews={data.reviews} />
     </div>
   );

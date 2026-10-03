@@ -5,6 +5,7 @@ export {
   getFeaturedProducts,
   getCollectionProducts,
   getHomeCategoryProducts,
+  getRecentProducts,
 } from "./products";
 export {
   getCategories,

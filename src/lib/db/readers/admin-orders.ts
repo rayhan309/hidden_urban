@@ -19,6 +19,9 @@ function mapLegacyAdminOrderDoc(doc: Record<string, unknown>): AdminOrder {
       ? (status as AdminOrderStatus)
       : "new_order",
     createdAt: String(doc.createdAt ?? new Date().toISOString()),
+    customerCity: String(doc.customerCity ?? ""),
+    customerRegion: String(doc.customerRegion ?? ""),
+    customerAddress: String(doc.customerAddress ?? ""),
   };
 }
 

@@ -22,7 +22,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    return NextResponse.json(order);
+    const { customerIp: _customerIp, ...publicOrder } = order;
+    return NextResponse.json(publicOrder);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load order";
     return NextResponse.json({ error: message }, { status: 500 });

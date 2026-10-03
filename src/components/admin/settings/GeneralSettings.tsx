@@ -25,6 +25,8 @@ import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { SettingsSection } from "@/components/admin/settings/SettingsSection";
 import { useAdminSiteSettings } from "@/hooks/useAdminSiteSettings";
 import { ADMIN_ACCENT } from "@/lib/constants/admin";
+import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
+import { uploadImageToImageKit } from "@/lib/imagekit/upload-client";
 
 const BRAND_PRESETS = [
   { label: "Eco green", value: "#1f6f5b" },
@@ -87,10 +89,14 @@ export function GeneralSettings() {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const { data: siteSettings, isLoading, saveMutation } = useAdminSiteSettings();
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(DEFAULT_SITE_SETTINGS.logoUrl);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(
+    DEFAULT_SITE_SETTINGS.faviconUrl,
+  );
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
+  const logoFileRef = useRef<File | null>(null);
+  const faviconFileRef = useRef<File | null>(null);
 
   const {
     control,
@@ -120,8 +126,8 @@ export function GeneralSettings() {
         visible: link.visible,
       })),
     });
-    setLogoPreview(siteSettings.logoUrl || null);
-    setFaviconPreview(siteSettings.faviconUrl || null);
+    if (!logoFileRef.current) setLogoPreview(siteSettings.logoUrl || null);
+    if (!faviconFileRef.current) setFaviconPreview(siteSettings.faviconUrl || null);
   }, [siteSettings, reset]);
 
   const { fields, append, remove } = useFieldArray({
@@ -135,25 +141,31 @@ export function GeneralSettings() {
   function onFileChange(
     event: ChangeEvent<HTMLInputElement>,
     setter: (url: string) => void,
+    fileRef: { current: File | null },
   ) {
     const file = event.target.files?.[0];
     if (!file?.type.startsWith("image/")) return;
+    fileRef.current = file;
     setter(URL.createObjectURL(file));
   }
 
   async function onSubmit(values: GeneralSettingsFormValues) {
     setSaveError(null);
     try {
-      const logoUrl =
-        logoPreview && !logoPreview.startsWith("blob:")
-          ? logoPreview
-          : siteSettings?.logoUrl ?? "";
-      const faviconUrl =
-        faviconPreview && !faviconPreview.startsWith("blob:")
-          ? faviconPreview
-          : siteSettings?.faviconUrl ?? "";
+      let logoUrl = siteSettings?.logoUrl ?? "";
+      let faviconUrl = siteSettings?.faviconUrl ?? "";
 
-      await saveMutation.mutateAsync({
+      if (logoFileRef.current) {
+        logoUrl = await uploadImageToImageKit(logoFileRef.current, "/hidden-urban/brand");
+      }
+      if (faviconFileRef.current) {
+        faviconUrl = await uploadImageToImageKit(
+          faviconFileRef.current,
+          "/hidden-urban/brand",
+        );
+      }
+
+      const saved = await saveMutation.mutateAsync({
         primaryColor: values.brandColor,
         shopShortDescription: values.shortDescription,
         shopTagline: values.tagline,
@@ -162,10 +174,17 @@ export function GeneralSettings() {
         logoUrl,
         faviconUrl,
       });
+
+      logoFileRef.current = null;
+      faviconFileRef.current = null;
+      setLogoPreview(saved.logoUrl || null);
+      setFaviconPreview(saved.faviconUrl || null);
       setSaved(true);
       window.setTimeout(() => setSaved(false), 3000);
-    } catch {
-      setSaveError("Could not save settings. Try again.");
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Could not save settings. Try again.",
+      );
     }
   }
 
@@ -241,7 +260,7 @@ export function GeneralSettings() {
       <Stack spacing={2}>
         <SettingsSection
           title="Logo & favicon"
-          description="Shown in the navbar, footer, and browser tab. Click Save after uploading."
+          description="Shown in the navbar, footer, admin sidebar, and browser tab. Upload a new file, then Save."
         >
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -301,7 +320,7 @@ export function GeneralSettings() {
                   type="file"
                   accept="image/*"
                   hidden
-                  onChange={(e) => onFileChange(e, setLogoPreview)}
+                  onChange={(e) => onFileChange(e, setLogoPreview, logoFileRef)}
                 />
               </Box>
               <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
@@ -367,7 +386,7 @@ export function GeneralSettings() {
                   type="file"
                   accept="image/*"
                   hidden
-                  onChange={(e) => onFileChange(e, setFaviconPreview)}
+                  onChange={(e) => onFileChange(e, setFaviconPreview, faviconFileRef)}
                 />
               </Box>
               <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>

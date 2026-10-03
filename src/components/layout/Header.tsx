@@ -107,7 +107,7 @@ export function Header() {
                     component="img"
                     src={settings.logoUrl}
                     alt=""
-                    sx={{ height: 32, width: "auto", display: "block" }}
+                    sx={{ height: 40, width: 40, objectFit: "contain", display: "block" }}
                   />
                 ) : null}
                 {settings.shopName}
