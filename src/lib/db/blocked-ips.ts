@@ -67,7 +67,7 @@ export async function blockIp(input: BlockIpInput): Promise<BlockedIp> {
     blockedAt: now,
     blockedBy: (input.blockedBy ?? "").trim(),
   };
-  await Model.create(payload);
+  await Model.create(payload as Record<string, unknown>);
   return payload;
 }
 
