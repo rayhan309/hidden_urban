@@ -37,10 +37,8 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        <TrackingPixels />
-      </head>
       <body className="min-h-full flex flex-col">
+        <TrackingPixels />
         <AppProviders>
           <SiteSettingsShell>{children}</SiteSettingsShell>
         </AppProviders>

@@ -33,38 +33,18 @@ export function SiteSettingsRoot({ children }: SiteSettingsRootProps) {
       return link.href === target;
     }
 
-    function apply() {
-      document
-        .querySelectorAll<HTMLLinkElement>("link[rel='icon'], link[rel='shortcut icon']")
-        .forEach((link) => {
-          const current = link.getAttribute("href") ?? "";
-          if (current.includes("favicon.ico")) {
-            link.remove();
-            return;
-          }
-          if (!matches(link)) link.href = href;
-        });
-
-      if (!document.querySelector("link[rel='icon']")) {
-        const link = document.createElement("link");
-        link.rel = "icon";
-        link.href = href;
+    function upsert(rel: string) {
+      let link = document.querySelector<HTMLLinkElement>(`link[rel='${rel}']`);
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = rel;
         document.head.appendChild(link);
       }
-
-      let apple = document.querySelector<HTMLLinkElement>("link[rel='apple-touch-icon']");
-      if (!apple) {
-        apple = document.createElement("link");
-        apple.rel = "apple-touch-icon";
-        document.head.appendChild(apple);
-      }
-      if (!matches(apple)) apple.href = href;
+      if (!matches(link)) link.href = href;
     }
 
-    apply();
-    const observer = new MutationObserver(apply);
-    observer.observe(document.head, { childList: true });
-    return () => observer.disconnect();
+    upsert("icon");
+    upsert("apple-touch-icon");
   }, [settings.faviconUrl]);
 
   // Base PageView is fired by server-rendered TrackingPixels (ttq.page / fbq PageView).

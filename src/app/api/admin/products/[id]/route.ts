@@ -9,7 +9,12 @@ import {
   isSlugTakenByOther,
   updateAdminProductRecord,
 } from "@/lib/products/admin-product-record";
-import { slugifyTitle, createProductApiSchema } from "@/lib/validations/product";
+import {
+  createProductApiSchema,
+  normalizeProductSlug,
+  slugifyTitle,
+  validationErrorMessage,
+} from "@/lib/validations/product";
 import { getCategories } from "@/services/categories";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -53,10 +58,14 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const json = await request.json();
+    if (json && typeof json === "object") {
+      const body = json as { slug?: unknown; titleEn?: unknown };
+      body.slug = normalizeProductSlug(String(body.slug ?? ""), String(body.titleEn ?? ""));
+    }
     const parsed = createProductApiSchema.safeParse(json);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid product data", details: parsed.error.flatten() },
+        { error: validationErrorMessage(parsed.error), details: parsed.error.flatten() },
         { status: 400 },
       );
     }

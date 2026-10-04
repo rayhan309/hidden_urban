@@ -24,7 +24,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type FieldPath } from "react-hook-form";
 import { SettingsSection } from "@/components/admin/settings/SettingsSection";
 import { VariablePricingSection } from "@/components/admin/products/VariablePricingSection";
 import { ADMIN_ACCENT } from "@/lib/constants/admin";
@@ -32,7 +32,8 @@ import {
   addProductFormSchema,
   calcDiscountPercent,
   deriveRegularFieldsFromVariants,
-  slugifyTitle,
+  normalizeProductSlug,
+  validationErrorMessage,
   type AddProductFormValues,
 } from "@/lib/validations/product";
 import { createProduct, updateProduct } from "@/services/admin-product-mutations";
@@ -149,6 +150,7 @@ export function AddProductView({ categories, attributes, productId, initialValue
   const { showToast } = useToast();
   const isEdit = Boolean(productId);
   const [tagInput, setTagInput] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -159,6 +161,8 @@ export function AddProductView({ categories, attributes, productId, initialValue
     handleSubmit,
     watch,
     setValue,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<AddProductFormValues>({
     defaultValues: initialValues ?? emptyDefaults,
@@ -192,11 +196,10 @@ export function AddProductView({ categories, attributes, productId, initialValue
 
   const saveMutation = useMutation({
     mutationFn: async (values: AddProductFormValues) => {
-      const parsed = addProductFormSchema.parse(values);
       if (productId) {
-        return updateProduct(productId, parsed);
+        return updateProduct(productId, values);
       }
-      return createProduct(parsed);
+      return createProduct(values);
     },
     onSuccess: async () => {
       showToast(isEdit ? "Product updated successfully" : "Product created successfully");
@@ -206,10 +209,29 @@ export function AddProductView({ categories, attributes, productId, initialValue
     },
   });
 
-  function autoSlugFromTitle() {
-    if (!slug.trim() && titleEn.trim()) {
-      setValue("slug", slugifyTitle(titleEn), { shouldValidate: true });
+  function applySlug(rawSlug = slug, rawTitle = titleEn) {
+    const next = normalizeProductSlug(rawSlug, rawTitle);
+    if (next !== rawSlug) {
+      setValue("slug", next, { shouldValidate: true });
     }
+    return next;
+  }
+
+  function onSubmit(values: AddProductFormValues) {
+    setFormError(null);
+    clearErrors();
+    const next = { ...values, slug: applySlug(values.slug, values.titleEn) };
+    const parsed = addProductFormSchema.safeParse(next);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const name = issue.path.map(String).join(".");
+        if (!name) continue;
+        setError(name as FieldPath<AddProductFormValues>, { message: issue.message });
+      }
+      setFormError(validationErrorMessage(parsed.error));
+      return;
+    }
+    saveMutation.mutate(parsed.data);
   }
 
   function addTag() {
@@ -286,11 +308,12 @@ export function AddProductView({ categories, attributes, productId, initialValue
         </Typography>
       </Box>
 
-      {saveMutation.isError ? (
+      {formError || saveMutation.isError ? (
         <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
-          {saveMutation.error instanceof Error
-            ? saveMutation.error.message
-            : "Failed to save product"}
+          {formError ??
+            (saveMutation.error instanceof Error
+              ? saveMutation.error.message
+              : "Failed to save product")}
         </Alert>
       ) : null}
 
@@ -300,7 +323,7 @@ export function AddProductView({ categories, attributes, productId, initialValue
         </Alert>
       ) : null}
 
-      <Box component="form" onSubmit={handleSubmit((values) => saveMutation.mutate(values))}>
+      <Box component="form" onSubmit={handleSubmit(onSubmit)}>
         <Grid container spacing={2.5} sx={{ alignItems: "flex-start" }}>
           <Grid size={{ xs: 12, lg: 8 }}>
             <Stack spacing={2.5}>
@@ -325,8 +348,10 @@ export function AddProductView({ categories, attributes, productId, initialValue
                         required
                         error={Boolean(errors.titleEn)}
                         helperText={errors.titleEn?.message}
-                        {...register("titleEn", { required: true })}
-                        onBlur={autoSlugFromTitle}
+                        {...register("titleEn", {
+                          required: true,
+                          onBlur: () => applySlug(),
+                        })}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -334,8 +359,15 @@ export function AddProductView({ categories, attributes, productId, initialValue
                         label="Slug (auto)"
                         fullWidth
                         error={Boolean(errors.slug)}
-                        helperText={errors.slug?.message ?? "Generated from title"}
-                        {...register("slug")}
+                        helperText={
+                          errors.slug?.message ??
+                          (titleEn.trim() && !normalizeProductSlug("", titleEn)
+                            ? "Bengali titles need a Latin slug, like premium-sunglasses"
+                            : "Generated from title. Spaces become hyphens.")
+                        }
+                        {...register("slug", {
+                          onBlur: (event) => applySlug(event.target.value),
+                        })}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>

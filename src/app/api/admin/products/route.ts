@@ -4,6 +4,8 @@ import { canManageProducts } from "@/lib/auth/permissions";
 import { dbConnect } from "@/lib/dbConnect";
 import {
   createProductApiSchema,
+  normalizeProductSlug,
+  validationErrorMessage,
 } from "@/lib/validations/product";
 import { buildStoredProductFields } from "@/lib/products/build-product-payload";
 import { ProductModel } from "@/models/Product";
@@ -18,10 +20,14 @@ export async function POST(request: Request) {
     }
 
     const json = await request.json();
+    if (json && typeof json === "object") {
+      const body = json as { slug?: unknown; titleEn?: unknown };
+      body.slug = normalizeProductSlug(String(body.slug ?? ""), String(body.titleEn ?? ""));
+    }
     const parsed = createProductApiSchema.safeParse(json);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid product data", details: parsed.error.flatten() },
+        { error: validationErrorMessage(parsed.error), details: parsed.error.flatten() },
         { status: 400 },
       );
     }

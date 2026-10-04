@@ -160,6 +160,15 @@ export function slugifyTitle(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+export function normalizeProductSlug(slug: string, title: string) {
+  return slugifyTitle(slug) || slugifyTitle(title);
+}
+
+export function validationErrorMessage(error: { issues: { message: string }[] }) {
+  const messages = [...new Set(error.issues.map((issue) => issue.message).filter(Boolean))];
+  return messages.join(" ") || "Invalid product data";
+}
+
 export function calcDiscountPercent(regular: number, sale: number | null) {
   if (!sale || regular <= 0 || sale >= regular) return 0;
   return Math.round((1 - sale / regular) * 100);
