@@ -1,4 +1,5 @@
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose/jwt/sign";
+import { jwtVerify } from "jose/jwt/verify";
 import type { AdminRole } from "@/lib/validations/admin-user";
 
 export const ADMIN_SESSION_COOKIE = "eco_admin_session";

@@ -6,7 +6,7 @@ import {
 } from "@/lib/auth/session";
 import type { AdminRole } from "@/lib/validations/admin-user";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!pathname.startsWith("/dashboard/admin")) {
