@@ -81,6 +81,27 @@ export async function findAdminUserById(id: string) {
   return User.findById(id);
 }
 
+export async function findAdminUserByIdWithPassword(id: string) {
+  const User = await getAdminUserModel();
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  return User.findById(id).select("+passwordHash");
+}
+
+export async function updateOwnAdminProfile(
+  id: string,
+  updates: { name?: string; passwordHash?: string },
+) {
+  const User = await getAdminUserModel();
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+
+  const $set: { name?: string; passwordHash?: string } = {};
+  if (updates.name !== undefined) $set.name = updates.name;
+  if (updates.passwordHash !== undefined) $set.passwordHash = updates.passwordHash;
+  if (Object.keys($set).length === 0) return User.findById(id);
+
+  return User.findByIdAndUpdate(id, { $set }, { new: true, runValidators: true });
+}
+
 export async function deleteAdminUserById(id: string) {
   const User = await getAdminUserModel();
   return User.findByIdAndDelete(id);

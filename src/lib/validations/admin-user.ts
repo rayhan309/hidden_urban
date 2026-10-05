@@ -37,3 +37,9 @@ export const updateAdminUserBodySchema = z.object({
   role: z.enum(["shop_manager", "moderator"]).optional(),
   password: z.string().min(8).optional(),
 });
+
+export const updateOwnProfileBodySchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().optional(),
+});

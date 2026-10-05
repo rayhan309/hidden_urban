@@ -4,6 +4,7 @@ import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import {
   Avatar,
@@ -33,6 +34,7 @@ import {
 } from "@/lib/constants/admin";
 import { ROLE_HOME } from "@/lib/auth/permissions";
 import { ROLE_LABELS, type AdminRole } from "@/lib/validations/admin-user";
+import { AccountSettingsDialog } from "@/components/admin/account/AccountSettingsDialog";
 
 type AdminShellProps = {
   children: ReactNode;
@@ -73,6 +75,7 @@ function SidebarContent({
   userRole,
   onNavigate,
   onSignOut,
+  onEditAccount,
 }: {
   pathname: string;
   nav: AdminNavEntry[];
@@ -80,6 +83,7 @@ function SidebarContent({
   userRole: AdminRole;
   onNavigate?: () => void;
   onSignOut: () => void;
+  onEditAccount: () => void;
 }) {
   const defaultOpen = useMemo(() => {
     const open: Record<string, boolean> = {};
@@ -293,6 +297,27 @@ function SidebarContent({
           type="button"
           fullWidth
           variant="outlined"
+          startIcon={<PersonOutlineRoundedIcon sx={{ fontSize: 18 }} />}
+          onClick={onEditAccount}
+          sx={{
+            mb: 1,
+            borderColor: "rgba(255,255,255,0.18)",
+            color: "rgba(255,255,255,0.85)",
+            py: 0.85,
+            fontSize: "0.8rem",
+            fontWeight: 600,
+            "&:hover": {
+              borderColor: "rgba(255,255,255,0.35)",
+              bgcolor: "rgba(255,255,255,0.05)",
+            },
+          }}
+        >
+          Edit profile
+        </Button>
+        <Button
+          type="button"
+          fullWidth
+          variant="outlined"
           startIcon={<LogoutRoundedIcon sx={{ fontSize: 18 }} />}
           onClick={onSignOut}
           sx={{
@@ -335,6 +360,7 @@ export function AdminShell({ children }: AdminShellProps) {
   const router = useRouter();
   const { user, logout, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const role = (user?.role ?? "moderator") as AdminRole;
   const nav = useMemo(() => filterNavForRole(role), [role]);
@@ -367,6 +393,7 @@ export function AdminShell({ children }: AdminShellProps) {
           userName={displayName}
           userRole={role}
           onSignOut={handleSignOut}
+          onEditAccount={() => setAccountOpen(true)}
         />
       </Box>
 
@@ -391,6 +418,10 @@ export function AdminShell({ children }: AdminShellProps) {
           userRole={role}
           onNavigate={() => setMobileOpen(false)}
           onSignOut={handleSignOut}
+          onEditAccount={() => {
+            setMobileOpen(false);
+            setAccountOpen(true);
+          }}
         />
       </Drawer>
 
@@ -436,7 +467,25 @@ export function AdminShell({ children }: AdminShellProps) {
             <MenuRoundedIcon />
           </IconButton>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+          <Box
+            component="button"
+            type="button"
+            aria-label="Edit your name and password"
+            onClick={() => setAccountOpen(true)}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.25,
+              border: 0,
+              bgcolor: "transparent",
+              cursor: "pointer",
+              p: 0.5,
+              borderRadius: 1,
+              textAlign: "left",
+              color: "inherit",
+              "&:hover": { bgcolor: "rgba(0,0,0,0.04)" },
+            }}
+          >
             <Avatar sx={{ width: 36, height: 36, bgcolor: ADMIN_ACCENT, fontSize: "0.8rem" }}>
               {loading ? "…" : initials(displayName) || "AD"}
             </Avatar>
@@ -465,6 +514,7 @@ export function AdminShell({ children }: AdminShellProps) {
         </Box>
       </Box>
     </Box>
+    <AccountSettingsDialog open={accountOpen} onClose={() => setAccountOpen(false)} />
     </ToastProvider>
   );
 }
