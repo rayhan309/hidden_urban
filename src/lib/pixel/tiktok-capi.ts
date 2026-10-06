@@ -66,7 +66,7 @@ export async function sendTikTokCapiEvent(
 
   const eventPayload: Record<string, unknown> = {
     event: TIKTOK_EVENT_MAP[payload.eventName],
-    event_time: Math.floor(Date.now() / 1000).toString(),
+    event_time: Math.floor(Date.now() / 1000),
     event_id: payload.eventId,
     user: buildUser(payload),
     properties: buildProperties(payload),
@@ -94,8 +94,15 @@ export async function sendTikTokCapiEvent(
     body: JSON.stringify(body),
   });
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
+  const text = await response.text().catch(() => "");
+  let code: number | undefined;
+  try {
+    const parsed = JSON.parse(text) as { code?: number };
+    code = parsed.code;
+  } catch {
+    code = undefined;
+  }
+  if (!response.ok || (code != null && code !== 0)) {
     console.error("[tiktok-capi]", response.status, text.slice(0, 500));
   }
 }

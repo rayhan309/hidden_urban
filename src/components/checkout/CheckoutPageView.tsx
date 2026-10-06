@@ -82,6 +82,9 @@ export function CheckoutPageView() {
   const region = watch("region");
   const city = watch("city");
   const deliveryAreaId = watch("deliveryAreaId");
+  const phoneValue = watch("phone");
+  const emailValue = watch("email");
+  const nameValue = watch("name");
   const districts = BD_REGIONS[region] ?? [];
 
   const autoAreaId = useMemo(
@@ -123,6 +126,25 @@ export function CheckoutPageView() {
       });
     });
   }, [isEmpty, cart.items, cart.subtotal, cart.currency]);
+
+  useEffect(() => {
+    const compactPhone = phoneValue.replace(/[\s-]/g, "");
+    const phoneOk = PHONE_PATTERN.test(compactPhone);
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue.trim());
+    if (!phoneOk && !emailOk) return;
+    const [firstName, ...rest] = nameValue.trim().split(/\s+/).filter(Boolean);
+    void import("@/lib/pixel/track").then(({ syncPixelCustomer }) => {
+      syncPixelCustomer({
+        phone: phoneOk ? compactPhone : undefined,
+        email: emailOk ? emailValue.trim() : undefined,
+        firstName,
+        lastName: rest.join(" ") || undefined,
+        city,
+        state: region,
+        country: "bd",
+      });
+    });
+  }, [phoneValue, emailValue, nameValue, city, region]);
 
   async function onSubmit(values: CheckoutFormValues) {
     if (regionBlocked) {
@@ -180,9 +202,12 @@ export function CheckoutPageView() {
         user: {
           email: values.email,
           phone: values.phone,
-          firstName: values.name.trim().split(/\s+/)[0],
+          firstName: values.name.trim().split(/\s+/).filter(Boolean)[0],
+          lastName:
+            values.name.trim().split(/\s+/).filter(Boolean).slice(1).join(" ") || undefined,
           city: values.city,
           state: values.region,
+          country: "bd",
         },
       });
 
@@ -246,13 +271,16 @@ export function CheckoutPageView() {
                 <TextField
                   label="Full name"
                   fullWidth
+                  autoComplete="name"
                   error={Boolean(errors.name)}
                   helperText={errors.name?.message}
                   {...register("name", { required: "Name is required", minLength: 2 })}
                 />
                 <TextField
                   label="Phone"
+                  type="tel"
                   fullWidth
+                  autoComplete="tel"
                   placeholder="01XXXXXXXXX"
                   error={Boolean(errors.phone)}
                   helperText={errors.phone?.message}
@@ -265,6 +293,7 @@ export function CheckoutPageView() {
                   label="Email (optional)"
                   type="email"
                   fullWidth
+                  autoComplete="email"
                   {...register("email")}
                 />
                 <Controller

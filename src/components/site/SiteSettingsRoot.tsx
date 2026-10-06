@@ -68,13 +68,7 @@ export function SiteSettingsRoot({ children }: SiteSettingsRootProps) {
     lastPath.current = pathname;
 
     const timer = window.setTimeout(() => {
-      if (tiktokOn) {
-        try {
-          window.ttq?.page?.();
-        } catch {
-          /* ignore */
-        }
-      }
+      // One PageView with a shared event id. A separate ttq.page() here was a second hit TikTok could not dedupe.
       void trackPixelEvent({ eventName: "PageView" });
     }, 200);
 

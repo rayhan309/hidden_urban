@@ -1,12 +1,14 @@
 "use client";
 
 import { normalizePixelContents, pixelContentIds } from "@/lib/pixel/contents";
+import { tiktokIdentifyPayload, type PixelCustomer } from "@/lib/pixel/customer";
 import type { PixelContentItem, PixelEventName } from "@/lib/pixel/types";
 
 type FbqFn = (...args: unknown[]) => void;
 type TtqFn = {
   track: (event: string, params?: Record<string, unknown>, options?: { event_id?: string }) => void;
   page: () => void;
+  identify?: (params: Record<string, unknown>) => void;
   load: (pixelId: string) => void;
 };
 
@@ -70,7 +72,20 @@ type BrowserTrackInput = {
   contentName?: string;
   numItems?: number;
   orderId?: string;
+  user?: PixelCustomer;
 };
+
+/** Attach email / phone so later ttq events pass TikTok advanced matching. */
+export function identifyTikTokCustomer(user?: PixelCustomer) {
+  if (typeof window === "undefined" || !user) return;
+  const payload = tiktokIdentifyPayload(user);
+  if (!payload) return;
+  try {
+    window.ttq?.identify?.(payload);
+  } catch {
+    /* ignore */
+  }
+}
 
 function needsCommerceContents(eventName: PixelEventName) {
   return (
@@ -153,6 +168,7 @@ function fireOnce(input: BrowserTrackInput): { meta: boolean; tiktok: boolean } 
   }
 
   try {
+    identifyTikTokCustomer(input.user);
     if (typeof window.ttq?.track === "function") {
       window.ttq.track(TIKTOK_BROWSER_EVENT[input.eventName], buildTikTokParams(input, contents), {
         event_id: input.eventId,
