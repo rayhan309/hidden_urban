@@ -80,7 +80,8 @@ export async function sendMetaCapiEvent(
   };
 
   const testCode = settings.metaCapiTestEventCode.trim();
-  if (testCode) body.test_event_code = testCode;
+  // A saved test code must not mark live CAPI traffic as test-only.
+  if (!settings.metaCapiEnabled && testCode) body.test_event_code = testCode;
 
   const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${encodeURIComponent(settings.metaPixelId.trim())}/events`;
 

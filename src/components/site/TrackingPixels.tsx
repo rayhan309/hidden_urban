@@ -11,10 +11,11 @@ document,'script','https://connect.facebook.net/en_US/fbevents.js');
 fbq('init','${id}');fbq('track','PageView');`;
 }
 
-function tiktokPixelSnippet(pixelId: string) {
+function tiktokPixelSnippet(pixelId: string, pageEventId: string) {
   const id = pixelId.replace(/'/g, "");
+  const eventId = pageEventId.replace(/'/g, "");
   const storageKey = PIXEL_CUSTOMER_STORAGE_KEY.replace(/'/g, "");
-  return `!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src=r+"?sdkid="+e+"&lib="+t;(document.head||document.documentElement).appendChild(n)};ttq.load('${id}');try{var raw=localStorage.getItem('${storageKey}');if(raw){var u=JSON.parse(raw)||{},idn={};if(u.email)idn.email=String(u.email).trim().toLowerCase();var phone=String(u.phone||'').trim();if(phone&&phone.charAt(0)!=='+'){var digits=phone.replace(/\\D/g,'');if(digits.indexOf('00')===0)digits=digits.slice(2);if(digits.charAt(0)==='0'&&digits.length===11)digits='880'+digits.slice(1);if(digits.length>=11)phone='+'+digits;}if(phone.indexOf('+')===0)idn.phone_number=phone;if(idn.email||idn.phone_number)ttq.identify(idn);}}catch(err){}ttq.page();}(window,document,'ttq');`;
+  return `!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src=r+"?sdkid="+e+"&lib="+t;(document.head||document.documentElement).appendChild(n)};ttq.load('${id}');try{var raw=localStorage.getItem('${storageKey}');if(raw){var u=JSON.parse(raw)||{},idn={};if(u.email)idn.email=String(u.email).trim().toLowerCase();var phone=String(u.phone||'').trim();if(phone&&phone.charAt(0)!=='+'){var digits=phone.replace(/\\D/g,'');if(digits.indexOf('00')===0)digits=digits.slice(2);if(digits.charAt(0)==='0'&&digits.length===11)digits='880'+digits.slice(1);if(digits.length>=11)phone='+'+digits;}if(phone.indexOf('+')===0)idn.phone_number=phone;if(idn.email||idn.phone_number)ttq.identify(idn);}}catch(err){}w.__ecoPageEventId='${eventId}';ttq.track('Pageview',{},{event_id:'${eventId}'});}(window,document,'ttq');`;
 }
 
 /**
@@ -29,6 +30,7 @@ export async function TrackingPixels() {
   const tiktokId = settings.tiktokPixelId.trim();
   const metaOn = settings.metaPixelEnabled && Boolean(metaId);
   const tiktokOn = settings.tiktokPixelEnabled && Boolean(tiktokId);
+  const pageEventId = crypto.randomUUID();
 
   if (!metaOn && !tiktokOn) return null;
 
@@ -56,7 +58,7 @@ export async function TrackingPixels() {
       {tiktokOn ? (
         <script
           id="tiktok-pixel-base"
-          dangerouslySetInnerHTML={{ __html: tiktokPixelSnippet(tiktokId) }}
+          dangerouslySetInnerHTML={{ __html: tiktokPixelSnippet(tiktokId, pageEventId) }}
         />
       ) : null}
     </>

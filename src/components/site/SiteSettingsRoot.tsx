@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { readBootPageEventId } from "@/lib/pixel/browser";
 import { trackPixelEvent } from "@/lib/pixel/track";
 
 type SiteSettingsRootProps = {
@@ -47,8 +48,8 @@ export function SiteSettingsRoot({ children }: SiteSettingsRootProps) {
     upsert("apple-touch-icon");
   }, [settings.faviconUrl]);
 
-  // Base PageView is fired by server-rendered TrackingPixels (ttq.page / fbq PageView).
-  // This effect covers SPA navigations + CAPI with shared event_id.
+  // First Pageview is fired by TrackingPixels (ttq.track) with __ecoPageEventId.
+  // This effect sends the matching CAPI hit, then one Pageview per SPA navigation.
   useEffect(() => {
     if (!metaOn && !tiktokOn && !metaCapiOn && !tiktokCapiOn) {
       return;
@@ -59,7 +60,11 @@ export function SiteSettingsRoot({ children }: SiteSettingsRootProps) {
       skipFirst.current = false;
       lastPath.current = pathname;
       const timer = window.setTimeout(() => {
-        void trackPixelEvent({ eventName: "PageView", skipBrowser: true });
+        void trackPixelEvent({
+          eventName: "PageView",
+          eventId: readBootPageEventId(),
+          skipBrowser: true,
+        });
       }, 250);
       return () => window.clearTimeout(timer);
     }

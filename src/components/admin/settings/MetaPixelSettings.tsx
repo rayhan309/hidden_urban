@@ -65,7 +65,9 @@ function statusLabel(platform: PlatformValues) {
   const testCode = platform.testEventCode.trim();
 
   if (browserOk && capiOk) {
-    return "browser pixel and CAPI are enabled (deduplication via event_id)";
+    return testCode
+      ? "browser pixel and CAPI are enabled. The test event code is ignored so live events reach diagnostics."
+      : "browser pixel and CAPI are enabled (deduplication via event_id)";
   }
   if (browserOk) return "browser pixel is enabled";
   if (capiOk) return "CAPI is enabled";
@@ -380,7 +382,7 @@ export function MetaPixelSettings() {
                   label="Test event code (optional)"
                   fullWidth
                   placeholder="TEST12345"
-                  helperText="Server Events API only — needs access token"
+                  helperText="Used only while CAPI is off. With CAPI on, events are sent live so diagnostics can see them."
                   {...register("meta.testEventCode")}
                 />
               </Grid>
@@ -483,7 +485,7 @@ export function MetaPixelSettings() {
                   label="Test event code (optional)"
                   fullWidth
                   placeholder="TEST05989"
-                  helperText="Server Events API only — needs access token"
+                  helperText="Used only while CAPI is off. With CAPI on, events are sent live so diagnostics can see them."
                   {...register("tiktok.testEventCode")}
                 />
               </Grid>

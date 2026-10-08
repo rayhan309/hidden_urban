@@ -1,17 +1,9 @@
 import type { SiteSettings } from "@/types/site-settings";
-import { normalizePixelContents } from "@/lib/pixel/contents";
 import { hashEmail, hashPhone } from "@/lib/pixel/hash";
-import type { PixelEventName, PixelEventPayload } from "@/lib/pixel/types";
+import { buildTikTokProperties, TIKTOK_EVENT_NAME } from "@/lib/pixel/tiktok-payload";
+import type { PixelEventPayload } from "@/lib/pixel/types";
 
 const TIKTOK_EVENTS_URL = "https://business-api.tiktok.com/open_api/v1.3/event/track/";
-
-const TIKTOK_EVENT_MAP: Record<PixelEventName, string> = {
-  PageView: "Pageview",
-  ViewContent: "ViewContent",
-  AddToCart: "AddToCart",
-  InitiateCheckout: "InitiateCheckout",
-  Purchase: "CompletePayment",
-};
 
 function buildUser(payload: PixelEventPayload) {
   const user: Record<string, unknown> = {};
@@ -27,27 +19,7 @@ function buildUser(payload: PixelEventPayload) {
 }
 
 function buildProperties(payload: PixelEventPayload) {
-  const properties: Record<string, unknown> = {
-    content_type: payload.contentType ?? "product",
-  };
-  if (payload.currency) properties.currency = payload.currency;
-  if (payload.value != null) properties.value = payload.value;
-  if (payload.contentName) properties.content_name = payload.contentName;
-  if (payload.orderId) properties.order_id = payload.orderId;
-
-  const contents = normalizePixelContents(payload.contents, payload.contentIds);
-  if (contents.length) {
-    properties.contents = contents.map((item) => ({
-      content_id: item.id,
-      content_type: payload.contentType ?? "product",
-      content_name: payload.contentName,
-      quantity: item.quantity,
-      price: item.item_price,
-    }));
-    properties.content_id = contents.map((item) => item.id).join(",");
-  }
-
-  return properties;
+  return buildTikTokProperties(payload);
 }
 
 function shouldSendTikTokCapi(settings: SiteSettings): boolean {
@@ -65,7 +37,7 @@ export async function sendTikTokCapiEvent(
   if (!shouldSendTikTokCapi(settings)) return;
 
   const eventPayload: Record<string, unknown> = {
-    event: TIKTOK_EVENT_MAP[payload.eventName],
+    event: TIKTOK_EVENT_NAME[payload.eventName],
     event_time: Math.floor(Date.now() / 1000),
     event_id: payload.eventId,
     user: buildUser(payload),
@@ -83,7 +55,8 @@ export async function sendTikTokCapiEvent(
   };
 
   const testCode = settings.tiktokCapiTestEventCode.trim();
-  if (testCode) body.test_event_code = testCode;
+  // Diagnostics ignore test events. Only attach the code when CAPI itself is off.
+  if (!settings.tiktokCapiEnabled && testCode) body.test_event_code = testCode;
 
   const response = await fetch(TIKTOK_EVENTS_URL, {
     method: "POST",
