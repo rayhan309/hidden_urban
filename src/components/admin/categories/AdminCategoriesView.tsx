@@ -99,7 +99,6 @@ export function AdminCategoriesView({ categories }: AdminCategoriesViewProps) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.categories() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.site.categories() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.home.page() }),
       ]);
     },
     onError: (error) => {
@@ -115,7 +114,6 @@ export function AdminCategoriesView({ categories }: AdminCategoriesViewProps) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.categories() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.site.categories() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.home.page() }),
       ]);
     },
     onError: (error) => {
@@ -130,7 +128,6 @@ export function AdminCategoriesView({ categories }: AdminCategoriesViewProps) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.categories() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.site.categories() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.home.page() }),
       ]);
     },
     onError: (error) => {

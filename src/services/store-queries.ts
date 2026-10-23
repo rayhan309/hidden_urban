@@ -1,4 +1,3 @@
-import type { HomePageData } from "@/lib/data/home";
 import type { AdminOverviewData } from "@/services/admin";
 import type { AdminCustomersData } from "@/services/admin-customers";
 import type { AdminProductsCatalog } from "@/services/admin-products";
@@ -7,6 +6,7 @@ import type { AdminCategory } from "@/types/admin-category";
 import type { ProductAttribute } from "@/data/dummy/product-attributes";
 import type { Collection } from "@/types/collection";
 import type { Category } from "@/types/category";
+import type { Product } from "@/types/product";
 import type { PublicSiteSettings } from "@/types/site-settings";
 import { api } from "@/lib/axios";
 import { normalizePublicSiteSettings } from "@/lib/site-settings/public";
@@ -21,9 +21,9 @@ export async function fetchStoreCategories(): Promise<Category[]> {
   return Array.isArray(data) ? data : [];
 }
 
-export async function fetchHomePageData(): Promise<HomePageData> {
-  const { data } = await api.get<HomePageData>("/api/store/home");
-  return data;
+export async function fetchStoreProducts(): Promise<Product[]> {
+  const { data } = await api.get<{ products?: Product[] }>("/api/products");
+  return Array.isArray(data.products) ? data.products : [];
 }
 
 export async function fetchAdminOverviewData(): Promise<AdminOverviewData> {

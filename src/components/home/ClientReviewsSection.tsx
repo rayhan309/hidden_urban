@@ -77,6 +77,8 @@ export function ClientReviewsSection({ reviews }: ClientReviewsSectionProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [swiper, setSwiper] = useState<SwiperType | null>(null);
 
+  if (reviews.length === 0) return null;
+
   return (
     <section className="w-full">
       <div className="relative mb-6 flex items-center justify-between gap-4 border-b border-[#20312d]">

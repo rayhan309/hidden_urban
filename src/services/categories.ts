@@ -1,9 +1,10 @@
+import { cache } from "react";
 import { getCategoriesFromDbOrFallback } from "@/lib/db/readers/categories";
 import type { Category } from "@/types/category";
 
-export async function getCategories(): Promise<Category[]> {
+export const getCategories = cache(async function getCategories(): Promise<Category[]> {
   return getCategoriesFromDbOrFallback();
-}
+});
 
 export async function getTopCategories(limit = 10): Promise<Category[]> {
   const categories = await getCategories();

@@ -24,7 +24,7 @@ export default function NotFound() {
       </main>
       <Footer />
       <CartSidebar />
-      <WishlistSidebar products={[]} />
+      <WishlistSidebar />
     </div>
   );
 }

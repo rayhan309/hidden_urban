@@ -4,27 +4,31 @@ import FavoriteBorderRoundedIcon from "@mui/icons-material/FavoriteBorderRounded
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import { motion } from "motion/react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { QuickViewDialog } from "@/components/product/QuickViewDialog";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { formatCurrency } from "@/lib/formatters/currency";
+import { displayImageUrl } from "@/lib/images/display-url";
 import { useCartUI } from "@/providers/CartUIProvider";
 import type { Product } from "@/types/product";
 
+const QuickViewDialog = dynamic(
+  () => import("@/components/product/QuickViewDialog").then((mod) => mod.QuickViewDialog),
+  { ssr: false },
+);
+
 type CollectionProductCardProps = {
   product: Product;
-  index?: number;
 };
 
 const actionBtnClass =
   "flex h-6 w-6 items-center justify-center rounded-md border border-[rgba(32,49,45,0.1)] bg-white text-[#20312d] shadow-sm transition-colors hover:border-[#1f6f5b] hover:bg-[#1f6f5b] hover:text-white sm:h-7 sm:w-7 md:h-8 md:w-8";
 
 const actionIconSx = { fontSize: { xs: 12, sm: 14, md: 15 } };
-export function CollectionProductCard({ product, index = 0 }: CollectionProductCardProps) {
+export function CollectionProductCard({ product }: CollectionProductCardProps) {
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const { addItem } = useCart();
   const { openCart } = useCartUI();
@@ -64,18 +68,12 @@ export function CollectionProductCard({ product, index = 0 }: CollectionProductC
 
   return (
     <>
-      <motion.article
-        initial={{ opacity: 0, y: 18 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.2 }}
-        transition={{ duration: 0.45, delay: index * 0.05, ease: "easeOut" }}
-        className="group flex h-full flex-col"
-      >
+      <article className="group flex h-full flex-col">
         <div className="relative w-full overflow-hidden rounded-md bg-[#f0ebe3]">
           <Link href={href} className="relative block w-full">
             {image ? (
               <Image
-                src={image.url}
+                src={displayImageUrl(image.url, 640)}
                 alt={image.alt}
                 width={800}
                 height={1000}
@@ -150,19 +148,21 @@ export function CollectionProductCard({ product, index = 0 }: CollectionProductC
             ) : null}
           </div>
         </div>
-      </motion.article>
+      </article>
 
-      <QuickViewDialog
-        product={product}
-        open={quickViewOpen}
-        onClose={() => setQuickViewOpen(false)}
-        onAddToCart={() => {
-          handleAddToCart();
-          setQuickViewOpen(false);
-        }}
-        onToggleWishlist={() => toggleWishlist(product.id)}
-        isWishlisted={wishlisted}
-      />
+      {quickViewOpen ? (
+        <QuickViewDialog
+          product={product}
+          open
+          onClose={() => setQuickViewOpen(false)}
+          onAddToCart={() => {
+            handleAddToCart();
+            setQuickViewOpen(false);
+          }}
+          onToggleWishlist={() => toggleWishlist(product.id)}
+          isWishlisted={wishlisted}
+        />
+      ) : null}
     </>
   );
 }

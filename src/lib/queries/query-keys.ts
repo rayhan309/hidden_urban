@@ -4,12 +4,9 @@ export const queryKeys = {
     settings: () => [...queryKeys.site.all, "settings"] as const,
     categories: () => [...queryKeys.site.all, "categories"] as const,
   },
-  home: {
-    all: ["home"] as const,
-    page: () => [...queryKeys.home.all, "page"] as const,
-  },
   store: {
     all: ["store"] as const,
+    products: () => [...queryKeys.store.all, "products"] as const,
     orderRegion: () => [...queryKeys.store.all, "order-region"] as const,
   },
   admin: {

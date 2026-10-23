@@ -1,11 +1,12 @@
+import { cache } from "react";
 import { getCollectionsFromDbOrFallback } from "@/lib/db/readers/collections";
 import { getProducts } from "@/services/products";
 import type { Collection } from "@/types/collection";
 import type { Product } from "@/types/product";
 
-export async function getCollections(): Promise<Collection[]> {
+export const getCollections = cache(async function getCollections(): Promise<Collection[]> {
   return getCollectionsFromDbOrFallback();
-}
+});
 
 export async function getCollectionBySlug(slug: string): Promise<Collection | undefined> {
   const collections = await getCollections();

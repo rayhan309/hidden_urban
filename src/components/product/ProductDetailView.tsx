@@ -527,8 +527,8 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailVie
             </Link>
           </div>
           <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-4">
-            {relatedProducts.map((item, index) => (
-              <CollectionProductCard key={item.id} product={item} index={index} />
+            {relatedProducts.map((item) => (
+              <CollectionProductCard key={item.id} product={item} />
             ))}
           </div>
         </section>

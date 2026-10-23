@@ -17,7 +17,7 @@ export type HomePageData = {
 export async function loadHomePageData(): Promise<HomePageData> {
   const [categories, recentProducts, collections, reviews] = await Promise.all([
     getTopCategories(10),
-    getRecentProducts(30),
+    getRecentProducts(12),
     getCollections(),
     getClientReviews(6),
   ]);

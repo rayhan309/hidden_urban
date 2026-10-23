@@ -250,7 +250,7 @@ export function AdminProductAttributesView({ attributes }: AdminProductAttribute
                       <Typography
                         component="code"
                         sx={{
-                          fontFamily: "var(--font-geist-mono), monospace",
+                          fontFamily: "var(--font-mono), monospace",
                           fontSize: "0.85rem",
                           color: "#475569",
                           bgcolor: "#f1f5f9",

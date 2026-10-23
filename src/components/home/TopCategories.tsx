@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { displayImageUrl } from "@/lib/images/display-url";
 import type { Category } from "@/types/category";
 
 type TopCategoriesProps = {
@@ -33,7 +34,7 @@ export function TopCategories({ categories }: TopCategoriesProps) {
           >
             <div className="relative h-16 w-16 overflow-hidden rounded-md border border-[rgba(32,49,45,0.1)] bg-white sm:h-[72px] sm:w-[72px]">
               <Image
-                src={category.image}
+                src={displayImageUrl(category.image, 160)}
                 alt={category.title}
                 fill
                 sizes="72px"

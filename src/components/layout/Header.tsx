@@ -61,8 +61,7 @@ export function Header() {
           zIndex: (theme) => theme.zIndex.appBar,
           borderBottom: "1px solid",
           borderColor: "divider",
-          bgcolor: "rgba(255, 253, 248, 0.88)",
-          backdropFilter: "blur(14px)",
+          bgcolor: "#fffdf8",
         }}
       >
         <Container>

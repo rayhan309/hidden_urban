@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { dbConnect } from "@/lib/dbConnect";
 import { getSeedModel } from "@/lib/seed/seed-model";
 import { ProductModel } from "@/models/Product";
@@ -202,24 +203,53 @@ export async function readAdminCreatedProductsFromDb(): Promise<Product[]> {
   return docs.map((doc) => mapAdminProductDoc(doc as unknown as Record<string, unknown>));
 }
 
-export async function getProductsFromDbOrFallback(): Promise<Product[]> {
+function mergeBySlug(products: Product[]): Product[] {
+  const bySlug = new Map<string, Product>();
+  for (const product of products) {
+    if (!product.slug) continue;
+    bySlug.set(product.slug, product);
+  }
+  return Array.from(bySlug.values());
+}
+
+export const getProductsFromDbOrFallback = cache(async function getProductsFromDbOrFallback(): Promise<Product[]> {
   try {
     const [catalog, adminCreated] = await Promise.all([
       readCatalogProductsFromDb(),
       readAdminCreatedProductsFromDb(),
     ]);
 
-    const bySlug = new Map<string, Product>();
-    for (const product of [...catalog, ...adminCreated]) {
-      if (!product.slug) continue;
-      bySlug.set(product.slug, product);
-    }
-
-    return Array.from(bySlug.values()).sort(
+    return mergeBySlug([...catalog, ...adminCreated]).sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
   } catch (error) {
     console.error("[db] products read failed:", error);
+    return [];
+  }
+});
+
+/** Newest products only — avoids reading the full catalog for the homepage. */
+export async function readRecentProductsFromDb(limit: number): Promise<Product[]> {
+  try {
+    await dbConnect();
+    const Model = getSeedModel("catalog_products");
+    const [catalogDocs, adminDocs] = await Promise.all([
+      Model.find({}).sort({ createdAt: -1 }).limit(limit).lean(),
+      ProductModel.find({}).sort({ createdAt: -1 }).limit(limit).lean(),
+    ]);
+
+    const catalog = catalogDocs
+      .map((doc) => mapProductDoc(doc as unknown as Record<string, unknown>))
+      .filter((product) => Boolean(product.id && product.slug));
+    const adminCreated = adminDocs.map((doc) =>
+      mapAdminProductDoc(doc as unknown as Record<string, unknown>),
+    );
+
+    return mergeBySlug([...catalog, ...adminCreated])
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+  } catch (error) {
+    console.error("[db] recent products read failed:", error);
     return [];
   }
 }

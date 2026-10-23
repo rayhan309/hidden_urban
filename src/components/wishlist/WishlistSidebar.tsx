@@ -13,25 +13,32 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { formatCurrency } from "@/lib/formatters/currency";
+import { displayImageUrl } from "@/lib/images/display-url";
+import { queryKeys } from "@/lib/queries/query-keys";
 import { useCartUI } from "@/providers/CartUIProvider";
+import { fetchStoreProducts } from "@/services/store-queries";
 import type { Product } from "@/types/product";
 
-type WishlistSidebarProps = {
-  products: Product[];
-};
-
-export function WishlistSidebar({ products }: WishlistSidebarProps) {
+export function WishlistSidebar() {
   const { isWishlistOpen, closeWishlist, openCart } = useCartUI();
   const { productIds, toggleWishlist } = useWishlist();
   const { addItem } = useCart();
+  const shouldLoad = isWishlistOpen && productIds.length > 0;
+  const { data: products = [], isPending, isError } = useQuery({
+    queryKey: queryKeys.store.products(),
+    queryFn: fetchStoreProducts,
+    enabled: shouldLoad,
+  });
 
   const items = products.filter((product) => productIds.includes(product.id));
-  const isEmpty = items.length === 0;
+  const isLoading = shouldLoad && isPending;
+  const isEmpty = !isLoading && items.length === 0;
 
   function moveToCart(product: Product) {
     const image = product.images[0]?.url ?? "";
@@ -96,7 +103,7 @@ export function WishlistSidebar({ products }: WishlistSidebarProps) {
             Wishlist
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {items.length} {items.length === 1 ? "item" : "items"}
+            {productIds.length} {productIds.length === 1 ? "item" : "items"}
           </Typography>
         </Box>
         <IconButton
@@ -115,7 +122,19 @@ export function WishlistSidebar({ products }: WishlistSidebarProps) {
       </Stack>
 
       <Box sx={{ flex: 1, overflowY: "auto", px: 2.5 }}>
-        {isEmpty ? (
+        {isLoading ? (
+          <Stack sx={{ minHeight: 280, alignItems: "center", justifyContent: "center", py: 6 }}>
+            <Typography variant="body2" color="text.secondary">
+              Loading wishlist…
+            </Typography>
+          </Stack>
+        ) : isError ? (
+          <Stack sx={{ minHeight: 280, alignItems: "center", justifyContent: "center", py: 6 }}>
+            <Typography variant="body2" color="text.secondary">
+              Couldn&apos;t load saved products. Try again in a moment.
+            </Typography>
+          </Stack>
+        ) : isEmpty ? (
           <Stack
             sx={{
               height: "100%",
@@ -187,7 +206,7 @@ export function WishlistSidebar({ products }: WishlistSidebarProps) {
                   >
                     {image?.url ? (
                       <Image
-                        src={image.url}
+                        src={displayImageUrl(image.url, 200)}
                         alt={image.alt || product.title}
                         fill
                         sizes="88px"

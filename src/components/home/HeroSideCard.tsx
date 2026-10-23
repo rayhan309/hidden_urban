@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { displayImageUrl } from "@/lib/images/display-url";
 import type { HeroSideBanner } from "@/types/hero";
 
 type HeroSideCardProps = {
@@ -18,7 +19,7 @@ export function HeroSideCard({ banner }: HeroSideCardProps) {
       className="relative min-h-[150px] flex-1 overflow-hidden rounded-md sm:min-h-[170px]"
     >
       <Image
-        src={banner.image}
+        src={displayImageUrl(banner.image, 800)}
         alt={banner.imageAlt}
         fill
         sizes="(max-width: 1024px) 100vw, 33vw"

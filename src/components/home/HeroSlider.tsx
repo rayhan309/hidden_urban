@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Swiper as SwiperType } from "swiper";
 import { Autoplay } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { displayImageUrl } from "@/lib/images/display-url";
 import type { HeroSlide } from "@/types/hero";
 import "swiper/css";
 
@@ -35,7 +36,7 @@ export function HeroSlider({ slides }: HeroSliderProps) {
           <SwiperSlide key={slide.id} className="!h-full">
             <Link href={slide.href} className="relative block h-full min-h-[260px] sm:min-h-[320px] lg:min-h-full">
               <Image
-                src={slide.image}
+                src={displayImageUrl(slide.image, 1400)}
                 alt={slide.imageAlt}
                 fill
                 priority={slide.id === slides[0]?.id}
