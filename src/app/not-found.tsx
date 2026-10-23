@@ -15,7 +15,6 @@ export const metadata: Metadata = {
   },
 };
 
-
 export default function NotFound() {
   return (
     <div className="flex min-h-dvh flex-col">
@@ -29,4 +28,3 @@ export default function NotFound() {
     </div>
   );
 }
-
